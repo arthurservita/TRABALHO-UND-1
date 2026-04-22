@@ -1,8 +1,10 @@
 /**
  * Trabalho Prático - Análise Empírica de Complexidade de Algoritmos
  * Disciplina: Estruturas de Dados Básicos I
- * * ATUALIZAÇÃO - REQUISITOS TÉCNICOS:
- * - Modularidade: Utilização de std::function para injetar algoritmos externos.
+ * * OBJETIVO: Avaliar empiricamente o tempo de execução de algoritmos e comparar
+ * com funções assintóticas conhecidas[cite: 5].
+ * * REQUISITOS TÉCNICOS ATENDIDOS:
+ * - Modularidade: Uso de std::function para injetar algoritmos.
  * - Plotagem: Exportação automática para CSV para geração de gráficos.
  * - Medição: Utilização da biblioteca <chrono>.
  */
@@ -14,20 +16,20 @@
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
-#include <functional> // Necessário para modularidade de funções
-#include <fstream>    // Necessário para exportar os dados para CSV (Gráficos)
+#include <functional> 
+#include <fstream>    
 
 using namespace std;
 using namespace std::chrono;
 
-// Estrutura para armazenar os resultados (n, tempo)
+// Estrutura para armazenar os resultados (n, tempo médio) [cite: 16]
 struct ResultadoTeste {
     int n;
     double tempoMedioMs;
 };
 
 // =========================================================================
-// 1. ALGORITMOS DE BUSCA E ORDENAÇÃO (NÚCLEO)
+// 1. NÚCLEO DE ALGORITMOS (BUSCA E ORDENAÇÃO) [cite: 12]
 // =========================================================================
 
 int buscaSequencial(const vector<int>& arr, int alvo) {
@@ -94,7 +96,7 @@ void mergeSort(vector<int>& arr, int esq, int dir) {
 }
 
 // =========================================================================
-// 2. ENGINE DE TESTES MODULAR (Cumpre os requisitos de modularidade)
+// 2. ENGINE DE TESTES (MODULARIDADE)
 // =========================================================================
 
 vector<int> gerarVetorAleatorio(int n) {
@@ -106,10 +108,7 @@ vector<int> gerarVetorAleatorio(int n) {
     return arr;
 }
 
-/**
- * Função modular que recebe QUALQUER algoritmo de ordenação via parâmetro.
- * Permite chamar funções externas facilmente na main().
- */
+// Permite chamadas de outras funções externas ao projeto original
 double executarTesteOrdenacao(function<void(vector<int>&, int, int)> algoritmo, vector<int>& arr) {
     auto inicio = high_resolution_clock::now();
     algoritmo(arr, 0, arr.size() - 1);
@@ -117,9 +116,6 @@ double executarTesteOrdenacao(function<void(vector<int>&, int, int)> algoritmo, 
     return duration<double, milli>(fim - inicio).count();
 }
 
-/**
- * Função modular que recebe QUALQUER algoritmo de busca via parâmetro.
- */
 double executarTesteBusca(function<int(const vector<int>&, int)> algoritmo, const vector<int>& arr, int alvo) {
     auto inicio = high_resolution_clock::now();
     algoritmo(arr, alvo);
@@ -128,7 +124,7 @@ double executarTesteBusca(function<int(const vector<int>&, int)> algoritmo, cons
 }
 
 // =========================================================================
-// 3. EXPORTAÇÃO E ANÁLISE (Cumpre o requisito de plotagem de gráficos)
+// 3. EXPORTAÇÃO E ANÁLISE ASSINTÓTICA [cite: 17, 18, 19]
 // =========================================================================
 
 void exportarParaCSV(const vector<int>& tamanhosN, const vector<ResultadoTeste>& resSeq, 
@@ -143,8 +139,7 @@ void exportarParaCSV(const vector<int>& tamanhosN, const vector<ResultadoTeste>&
                     << resMerge[i].tempoMedioMs << "\n";
         }
         arquivo.close();
-        cout << "\n[!] Um arquivo 'resultados_plotagem.csv' foi gerado na pasta do projeto.\n";
-        cout << "    Utilize-o no Excel ou Python para plotar os graficos exigidos.\n";
+        cout << "\n[!] Arquivo 'resultados_plotagem.csv' gerado para plotagem.\n";
     }
 }
 
@@ -183,8 +178,9 @@ void analisarMelhorAjuste(const vector<ResultadoTeste>& resultados, const string
 // =========================================================================
 
 int main() {
+    // Entradas de tamanhos crescentes (n) [cite: 14]
     vector<int> tamanhosN = {10000, 20000, 40000, 80000, 160000};
-    int repeticoes = 10; 
+    int repeticoes = 10; // Várias repetições para minimizar efeitos externos [cite: 15]
 
     vector<ResultadoTeste> resBuscaSeq, resBuscaBin, resQuick, resMerge;
 
@@ -195,17 +191,15 @@ int main() {
 
         for (int r = 0; r < repeticoes; r++) {
             vector<int> arrBase = gerarVetorAleatorio(n);
-            int alvo = -1; // Força o pior caso na busca
+            int alvo = -1; // Pior caso para busca
             
             vector<int> arrQuick = arrBase;
             vector<int> arrMerge = arrBase;
 
-            // Uso da Engine Modular (permite inserir funções externas facilmente)
             tQuick += executarTesteOrdenacao(quickSort, arrQuick);
             tMerge += executarTesteOrdenacao(mergeSort, arrMerge);
-            
             tSeq += executarTesteBusca(buscaSequencial, arrBase, alvo);
-            tBin += executarTesteBusca(buscaBinaria, arrQuick, alvo); // arrQuick ja esta ordenado
+            tBin += executarTesteBusca(buscaBinaria, arrQuick, alvo); 
         }
 
         resBuscaSeq.push_back({n, tSeq / repeticoes});
@@ -220,7 +214,6 @@ int main() {
     analisarMelhorAjuste(resQuick, "QuickSort");
     analisarMelhorAjuste(resMerge, "MergeSort");
 
-    // Gera o arquivo para cumprir a recomendação de plotagem de gráficos
     exportarParaCSV(tamanhosN, resBuscaSeq, resBuscaBin, resQuick, resMerge);
 
     return 0;
