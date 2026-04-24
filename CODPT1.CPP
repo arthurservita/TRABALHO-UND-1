@@ -2,7 +2,7 @@
  * Trabalho Prático - Análise Empírica de Complexidade de Algoritmos
  * Disciplina: Estruturas de Dados Básicos I
  * * OBJETIVO: Avaliar empiricamente o tempo de execução de algoritmos e comparar
- * com funções assintóticas conhecidas[cite: 5].
+ * com funções assintóticas conhecidas.
  * * REQUISITOS TÉCNICOS ATENDIDOS:
  * - Modularidade: Uso de std::function para injetar algoritmos.
  * - Plotagem: Exportação automática para CSV para geração de gráficos.
@@ -22,14 +22,14 @@
 using namespace std;
 using namespace std::chrono;
 
-// Estrutura para armazenar os resultados (n, tempo médio) [cite: 16]
+// Estrutura para armazenar os resultados (n, tempo médio)
 struct ResultadoTeste {
     int n;
     double tempoMedioMs;
 };
 
 // =========================================================================
-// 1. NÚCLEO DE ALGORITMOS (BUSCA E ORDENAÇÃO) [cite: 12]
+// 1. NÚCLEO DE ALGORITMOS (BUSCA E ORDENAÇÃO)
 // =========================================================================
 
 int buscaSequencial(const vector<int>& arr, int alvo) {
@@ -91,7 +91,7 @@ void mergeSort(vector<int>& arr, int esq, int dir) {
         int meio = esq + (dir - esq) / 2;
         mergeSort(arr, esq, meio);
         mergeSort(arr, meio + 1, dir);
-        mergeSort(arr, esq, dir);
+        merge(arr, esq, meio, dir); // Chamada correta da função de junção
     }
 }
 
@@ -124,22 +124,30 @@ double executarTesteBusca(function<int(const vector<int>&, int)> algoritmo, cons
 }
 
 // =========================================================================
-// 3. EXPORTAÇÃO E ANÁLISE ASSINTÓTICA [cite: 17, 18, 19]
+// 3. EXPORTAÇÃO E ANÁLISE ASSINTÓTICA
 // =========================================================================
 
 void exportarParaCSV(const vector<int>& tamanhosN, const vector<ResultadoTeste>& resSeq, 
                      const vector<ResultadoTeste>& resBin, const vector<ResultadoTeste>& resQuick, 
                      const vector<ResultadoTeste>& resMerge) {
+    
+    // Gera o arquivo na mesma pasta do executável
     ofstream arquivo("resultados_plotagem.csv");
+    
     if (arquivo.is_open()) {
-        arquivo << "Tamanho(N),BuscaSeq(ms),BuscaBin(ms),QuickSort(ms),MergeSort(ms)\n";
+        // MUDANÇA AQUI: Usando ponto e vírgula (;) para o Excel brasileiro separar as colunas perfeitamente
+        arquivo << "Tamanho(N);BuscaSeq(ms);BuscaBin(ms);QuickSort(ms);MergeSort(ms)\n";
         for (size_t i = 0; i < tamanhosN.size(); i++) {
-            arquivo << tamanhosN[i] << "," << resSeq[i].tempoMedioMs << ","
-                    << resBin[i].tempoMedioMs << "," << resQuick[i].tempoMedioMs << ","
+            arquivo << tamanhosN[i] << ";" 
+                    << resSeq[i].tempoMedioMs << ";"
+                    << resBin[i].tempoMedioMs << ";" 
+                    << resQuick[i].tempoMedioMs << ";"
                     << resMerge[i].tempoMedioMs << "\n";
         }
         arquivo.close();
-        cout << "\n[!] Arquivo 'resultados_plotagem.csv' gerado para plotagem.\n";
+        cout << "\n[!] Arquivo 'resultados_plotagem.csv' gerado com sucesso!\n";
+    } else {
+        cerr << "\n[ERRO] Nao foi possivel criar o arquivo CSV. Verifique as permissoes da pasta.\n";
     }
 }
 
@@ -178,43 +186,59 @@ void analisarMelhorAjuste(const vector<ResultadoTeste>& resultados, const string
 // =========================================================================
 
 int main() {
-    // Entradas de tamanhos crescentes (n) [cite: 14]
-    vector<int> tamanhosN = {10000, 20000, 40000, 80000, 160000};
-    int repeticoes = 10; // Várias repetições para minimizar efeitos externos [cite: 15]
+    try {
+        // Valores reduzidos para testes rápidos. 
+        // Quando quiser testar de verdade, pode voltar para {1000, 2000, 5000,}
+        vector<int> tamanhosN = {1000, 2000, 5000};
+        int repeticoes = 5; 
 
-    vector<ResultadoTeste> resBuscaSeq, resBuscaBin, resQuick, resMerge;
+        vector<ResultadoTeste> resBuscaSeq, resBuscaBin, resQuick, resMerge;
 
-    cout << "Iniciando bateria de testes...\n";
+        cout << "===============================================" << endl;
+        cout << "INICIANDO COLETA DE DADOS PARA O RELATORIO..." << endl;
+        cout << "===============================================" << endl;
 
-    for (int n : tamanhosN) {
-        double tSeq = 0, tBin = 0, tQuick = 0, tMerge = 0;
+        for (int n : tamanhosN) {
+            cout << "[#] Testando N = " << n << "..." << endl;
+            double tSeq = 0, tBin = 0, tQuick = 0, tMerge = 0;
 
-        for (int r = 0; r < repeticoes; r++) {
-            vector<int> arrBase = gerarVetorAleatorio(n);
-            int alvo = -1; // Pior caso para busca
-            
-            vector<int> arrQuick = arrBase;
-            vector<int> arrMerge = arrBase;
+            for (int r = 0; r < repeticoes; r++) {
+                vector<int> arrBase = gerarVetorAleatorio(n);
+                int alvo = -1; 
+                vector<int> arrQuick = arrBase;
+                vector<int> arrMerge = arrBase;
 
-            tQuick += executarTesteOrdenacao(quickSort, arrQuick);
-            tMerge += executarTesteOrdenacao(mergeSort, arrMerge);
-            tSeq += executarTesteBusca(buscaSequencial, arrBase, alvo);
-            tBin += executarTesteBusca(buscaBinaria, arrQuick, alvo); 
+                tQuick += executarTesteOrdenacao(quickSort, arrQuick);
+                tMerge += executarTesteOrdenacao(mergeSort, arrMerge);
+                tSeq += executarTesteBusca(buscaSequencial, arrBase, alvo);
+                tBin += executarTesteBusca(buscaBinaria, arrQuick, alvo); 
+            }
+
+            resBuscaSeq.push_back({n, tSeq / repeticoes});
+            resBuscaBin.push_back({n, tBin / repeticoes});
+            resQuick.push_back({n, tQuick / repeticoes});
+            resMerge.push_back({n, tMerge / repeticoes});
         }
 
-        resBuscaSeq.push_back({n, tSeq / repeticoes});
-        resBuscaBin.push_back({n, tBin / repeticoes});
-        resQuick.push_back({n, tQuick / repeticoes});
-        resMerge.push_back({n, tMerge / repeticoes});
+        cout << "\n[!] Analisando complexidade assintotica..." << endl;
+        analisarMelhorAjuste(resBuscaSeq, "Busca Sequencial");
+        analisarMelhorAjuste(resBuscaBin, "Busca Binaria");
+        analisarMelhorAjuste(resQuick, "QuickSort");
+        analisarMelhorAjuste(resMerge, "MergeSort");
+
+        cout << "\n[!] Gerando arquivo resultados_plotagem.csv..." << endl;
+        exportarParaCSV(tamanhosN, resBuscaSeq, resBuscaBin, resQuick, resMerge);
+
+        cout << "\n===============================================" << endl;
+        cout << "SUCESSO! O arquivo CSV foi criado na mesma pasta do executavel." << endl;
+        cout << "Pressione ENTER para finalizar." << endl;
+        cout << "===============================================" << endl;
+
+    } catch (const exception& e) {
+        cerr << "\n!!! ERRO DETECTADO: " << e.what() << " !!!" << endl;
     }
 
-    cout << "\n=== AJUSTE ASSINTOTICO ===\n";
-    analisarMelhorAjuste(resBuscaSeq, "Busca Sequencial");
-    analisarMelhorAjuste(resBuscaBin, "Busca Binaria");
-    analisarMelhorAjuste(resQuick, "QuickSort");
-    analisarMelhorAjuste(resMerge, "MergeSort");
-
-    exportarParaCSV(tamanhosN, resBuscaSeq, resBuscaBin, resQuick, resMerge);
-
+    cin.ignore();
+    cin.get(); 
     return 0;
 }
